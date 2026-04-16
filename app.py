@@ -4,8 +4,6 @@ Run: streamlit run app.py
 """
 
 from datetime import date, timedelta
-import time
-
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -83,7 +81,7 @@ div[data-testid="stTabsContent"] {
   margin-top: 0 !important;
 }
 
-.stTextInput > div > div,
+.stTextInput [data-baseweb="input"],
 .stDateInput > div > div,
 .stSelectbox [data-baseweb="select"] > div {
   min-height: 52px !important;
@@ -95,6 +93,10 @@ div[data-testid="stTabsContent"] {
   box-shadow: none !important;
   display: flex !important;
   align-items: center !important;
+}
+
+.stTextInput [data-baseweb="input"] > div {
+  background: transparent !important;
 }
 
 .stTextInput input,
@@ -109,7 +111,7 @@ div[data-testid="stTabsContent"] {
   padding: 0 !important;
 }
 
-.stTextInput > div > div:focus-within,
+.stTextInput [data-baseweb="input"]:focus-within,
 .stDateInput > div > div:focus-within,
 .stSelectbox [data-baseweb="select"] > div:focus-within {
   border: 1px solid var(--accent) !important;
@@ -851,6 +853,13 @@ with tab_home:
 
 
 with tab_plan:
+    if "forecast_shown" not in st.session_state:
+        st.session_state.forecast_shown = False
+    if "alert_shown" not in st.session_state:
+        st.session_state.alert_shown = False
+    if "alert_threshold" not in st.session_state:
+        st.session_state.alert_threshold = 10.0
+
     st.markdown("<div class='section-kicker'>Forecast</div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Plan My Trip</div>", unsafe_allow_html=True)
 
@@ -873,12 +882,11 @@ with tab_plan:
             ],
         )
 
-    run = st.button("Show Fare Forecast", type="primary", use_container_width=True)
+    if st.button("Show Fare Forecast", type="primary", use_container_width=True):
+        st.session_state.forecast_shown = True
+        st.session_state.alert_shown = False
 
-    if run:
-        with st.spinner("Fetching fare forecast..."):
-            time.sleep(0.8)
-
+    if st.session_state.forecast_shown:
         result_html = (
             '<div style="background:#111;border:1px solid #1f1f1f;border-radius:28px;padding:28px 26px;margin:20px 0;">'
             '<div style="font-size:11px;font-weight:800;letter-spacing:0.14em;text-transform:uppercase;color:#8ef0b7;margin-bottom:22px;">Best window found</div>'
@@ -1012,15 +1020,54 @@ with tab_plan:
             "Alert me when the estimated fare drops below:",
             9.0,
             13.0,
-            10.0,
+            st.session_state.alert_threshold,
             0.5,
             format="$%.2f",
         )
         if nc2.button("Set Alert", use_container_width=True):
-            st.toast(f"Alert set for ${threshold:.2f}!", icon="OK")
-            st.info(
-                "**Custom price alerts are a Premium feature.**  \n"
-                "Upgrade to Premium ($2.99/month) to unlock unlimited alerts and 7-day forecasts."
+            st.session_state.alert_shown = True
+            st.session_state.alert_threshold = threshold
+
+        if st.session_state.alert_shown:
+            st.markdown(
+                f"""
+<div style="
+  animation: fadeSlideIn 0.28s cubic-bezier(0.22,1,0.36,1);
+  background: linear-gradient(135deg, rgba(24,196,92,0.14) 0%, rgba(10,43,21,0.88) 100%);
+  border: 1px solid rgba(24,196,92,0.42);
+  border-radius: 22px;
+  padding: 26px 28px;
+  margin-top: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.28), 0 0 0 1px rgba(24,196,92,0.08) inset;
+">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+    <span style="
+      background:rgba(24,196,92,0.18);
+      border:1px solid rgba(24,196,92,0.35);
+      border-radius:999px;
+      width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1rem;
+    ">✓</span>
+    <span style="color:#8ef0b7;font-size:0.78rem;font-weight:800;letter-spacing:0.13em;text-transform:uppercase;">Alert set</span>
+  </div>
+  <div style="color:#fff;font-size:1.45rem;font-weight:900;letter-spacing:-0.03em;line-height:1.1;margin-bottom:10px;">
+    Watching for fares below <span style="color:#8ef0b7;">${st.session_state.alert_threshold:.2f}</span>
+  </div>
+  <div style="color:rgba(255,255,255,0.65);font-size:0.94rem;line-height:1.65;">
+    You'll be notified when the estimated fare hits your target. &nbsp;
+    <span style="color:#8ef0b7;font-weight:700;">Custom alerts are a Premium feature</span>
+    &nbsp;— upgrade for unlimited alerts and a 7-day forecast.
+  </div>
+</div>
+<style>
+@keyframes fadeSlideIn {{
+  from {{ opacity:0; transform:translateY(10px); }}
+  to   {{ opacity:1; transform:translateY(0); }}
+}}
+</style>
+""",
+                unsafe_allow_html=True,
             )
 
 
@@ -1132,7 +1179,7 @@ with tab_premium:
       </div>
       <div class="testi">
         <div class="testi-q">"</div>
-        <div class="testi-copy">$2.99 pays for itself on the first ride. It feels obvious once you try it.</div>
+        <div class="testi-copy">$2.20 pays for itself on the first ride. It feels obvious once you try it.</div>
         <div class="testi-name">Jamie T.</div>
         <div class="testi-role">Frequent traveller</div>
       </div>
@@ -1212,7 +1259,7 @@ with tab_about:
         """
     <div class="d-cta">
       <div class="dt">Want to ride along?</div>
-      <div class="ds">Riders, investors, and partners can reach us at <strong style="color:#fff;">hello@faresaver.app</strong>.</div>
+      <div class="ds">Riders, investors, and partners can reach us at <strong style="color:#fff;">xzhu.liu@rotman.utoronto.ca</strong>.</div>
     </div>
     """,
         unsafe_allow_html=True,
