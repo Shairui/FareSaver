@@ -6,6 +6,7 @@ Run: streamlit run app.py
 from datetime import date, timedelta
 import plotly.graph_objects as go
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 st.set_page_config(
@@ -287,21 +288,23 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
 
 .hero-actions {
   display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
 }
 
 .hero-pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 18px;
+  padding: 14px 18px;
   border-radius: 999px;
   font-size: 0.92rem;
   font-weight: 700;
   border: 1px solid rgba(255,255,255,0.10);
   color: #fff;
   background: rgba(255,255,255,0.05);
+  text-align: center;
 }
 
 .hero-pill.primary {
@@ -324,7 +327,7 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
 }
 
 .hero-float-label {
-  color: rgba(255,255,255,0.62);
+  color: var(--warm);
   font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: 0.10em;
@@ -387,7 +390,7 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--warm) !important;
   margin: 24px 0 10px;
 }
 
@@ -546,7 +549,7 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
 }
 
 .savings-kicker {
-  color: #b8b1a4;
+  color: var(--warm);
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.10em;
@@ -587,11 +590,11 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #666;
+  color: var(--warm);
 }
 
 .plan-prem .plan-name {
-  color: rgba(255,255,255,0.55);
+  color: var(--warm);
 }
 
 .plan-price {
@@ -693,7 +696,7 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
 
 .testi-role,
 .team-role {
-  color: #9f988b;
+  color: var(--warm);
   font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -827,7 +830,7 @@ with tab_home:
             <h1>Stop<br><span class="accent-line">Over</span><br><span class="light-line">paying</span><br>for your <span class="accent">Uber</span> ride.</h1>
             <p>FareSaver shows when surge pricing is worth waiting out. Enter your route, see the cheap window, and leave when the price finally makes sense.</p>
             <div class="hero-actions">
-              <span class="hero-pill primary">Open fare forecast</span>
+              <span id="fs-open-btn" class="hero-pill primary" style="cursor:pointer;">Open fare forecast</span>
               <span class="hero-pill">No credit card required</span>
               <span class="hero-pill">Built for flexible riders</span>
             </div>
@@ -850,6 +853,21 @@ with tab_home:
     """,
         unsafe_allow_html=True,
     )
+
+    components.html("""
+<script>
+(function attach() {
+  var btn = window.parent.document.getElementById('fs-open-btn');
+  if (!btn) { setTimeout(attach, 150); return; }
+  if (btn._fs) return;
+  btn._fs = true;
+  btn.addEventListener('click', function() {
+    var tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+    if (tabs.length > 1) tabs[1].click();
+  });
+})();
+</script>
+""", height=0, scrolling=False)
 
 
 with tab_plan:
@@ -1099,9 +1117,7 @@ with tab_premium:
             <li>6-hour fare forecast</li>
             <li>Cheapest window highlight</li>
             <li>Up to 3 trip lookups per day</li>
-            <li class="off">7-day forecast</li>
-            <li class="off">Custom price alerts</li>
-            <li class="off">Unlimited trips</li>
+           
           </ul>
         </div>
         """,
