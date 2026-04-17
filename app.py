@@ -1264,7 +1264,7 @@ with tab_about:
       <div class="avatar">X</div>
       <div class="team-name">Xuezhu Liu</div>
       <div class="team-role">Founder & CEO</div>
-      <div class="team-bio">Formal RBC analyst and daily Uber rider who got tired of opening the app and seeing surge at exactly the wrong moment.</div>
+      <div class="team-bio">Former RBC analyst and daily Uber rider who got tired of opening the app and seeing surge at exactly the wrong moment.</div>
     </div>
     """,
         unsafe_allow_html=True,
