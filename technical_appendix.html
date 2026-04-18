@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FareSaver — Technical Appendix</title>
+<style>
+  /* ── Screen & print base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 12pt;
+    line-height: 1.9;
+    color: #111;
+    background: #fff;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 56px;
+  }
+
+  /* ── Typography ── */
+  h1 { font-size: 17pt; font-weight: bold; text-align: center; margin-bottom: 4px; }
+  h2 { font-size: 13pt; font-weight: bold; margin-top: 28px; margin-bottom: 6px;
+       border-bottom: 1.5px solid #111; padding-bottom: 3px; }
+  h3 { font-size: 12pt; font-weight: bold; margin-top: 18px; margin-bottom: 4px; }
+  p  { margin-bottom: 10px; text-align: justify; }
+
+  .centre { text-align: center; }
+  .subtitle { font-size: 11pt; text-align: center; color: #333; margin-bottom: 6px; }
+  .rule { border: none; border-top: 1px solid #888; margin: 20px 0; }
+
+  /* ── Code ── */
+  pre {
+    background: #f4f4f4;
+    border: 1px solid #ccc;
+    border-left: 3px solid #555;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9pt;
+    line-height: 1.45;
+    padding: 10px 14px;
+    margin: 10px 0 14px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    page-break-inside: avoid;
+  }
+  code { font-family: "Courier New", Courier, monospace; font-size: 9.5pt;
+         background: #f0f0f0; padding: 0 3px; }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10.5pt;
+    margin: 12px 0 18px;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #e8e8e8;
+    border: 1px solid #999;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: bold;
+  }
+  td {
+    border: 1px solid #bbb;
+    padding: 5px 10px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Figures ── */
+  figure {
+    text-align: center;
+    margin: 18px 0;
+    page-break-inside: avoid;
+  }
+  figure img { max-width: 100%; border: 1px solid #ccc; }
+  figcaption {
+    font-size: 9.5pt;
+    color: #444;
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* ── Misc ── */
+  ul, ol { margin: 6px 0 10px 22px; }
+  li { margin-bottom: 3px; }
+  .label { font-weight: bold; }
+  .note  { font-size: 9.5pt; color: #555; font-style: italic; }
+  .mono  { font-family: "Courier New", monospace; font-size: 9.5pt; }
+
+  /* ── Print ── */
+  @media print {
+    body { padding: 0; max-width: 100%; font-size: 11pt; }
+    pre  { font-size: 8.5pt; }
+    h2   { page-break-before: auto; }
+    .no-break { page-break-inside: avoid; }
+  }
+
+  @page { size: letter; margin: 1in; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════════
+     COVER
+══════════════════════════════════════════════════════════════ -->
+<h1>FareSaver — Technical Appendix</h1>
+<p class="subtitle">RSM 8542 · Analytics for Marketing Strategy · Spring 2026</p>
+<p class="subtitle">Xuezhu Liu &nbsp;|&nbsp; xzhu.liu@rotman.utoronto.ca</p>
+<hr class="rule">
+
+<p>This appendix satisfies the technical-appendix requirement of the RSM 8542 final project.
+It contains: (A) environment &amp; reproduction guide, (B) dataset citation and preprocessing,
+(C) feature engineering formulas, (D) model specification and performance,
+(E) segmentation DGP, (F) CLV model parameters, (G) WTP simulation DGP,
+(H) supplementary output tables, and (I) full annotated source code.</p>
+
+<p class="note">All code is Python 3.11. Results are fully reproducible with
+<code>np.random.seed(42)</code> and <code>np.random.seed(7)</code> as documented below.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     A. REPRODUCTION GUIDE
+══════════════════════════════════════════════════════════════ -->
+<h2>A. Reproduction Guide</h2>
+
+<h3>A.1 File structure</h3>
+<pre>FareSaver/
+├── FareSaver_Analytics_1.ipynb   ← main analytics notebook
+├── app.py                        ← Streamlit demo (static fares)
+├── uber.csv                      ← Kaggle Uber Fares Dataset (place here)
+├── requirements.txt
+└── README.md</pre>
+
+<h3>A.2 Environment setup</h3>
+<pre>pip install -r requirements.txt
+# requirements.txt:
+#   streamlit>=1.32.0
+#   plotly>=5.20.0
+#   pandas>=2.0.0
+#   numpy>=1.26.0
+#   scikit-learn>=1.4.0
+#   xgboost>=2.0.0
+#   matplotlib>=3.8.0
+#   seaborn>=0.13.0</pre>
+
+<h3>A.3 Reproducing the notebook results</h3>
+<ol>
+  <li>Download <code>uber.csv</code> from Kaggle (URL in Section B) and place it in the
+      <code>FareSaver/</code> folder.</li>
+  <li>Launch Jupyter Lab or VS Code and open <code>FareSaver_Analytics_1.ipynb</code>.</li>
+  <li>Run all cells top-to-bottom (<em>Kernel → Restart &amp; Run All</em>).
+      Expected runtime: ~3 min on a laptop CPU.</li>
+  <li>Five PNG figures are saved to disk: <code>eda_fare_patterns.png</code>,
+      <code>feature_importance.png</code>, <code>fare_forecast_by_hour.png</code>,
+      <code>user_segments.png</code>, <code>unit_economics.png</code>,
+      <code>pricing_analytics.png</code>.</li>
+</ol>
+
+<h3>A.4 Running the demo app</h3>
+<pre># Streamlit demo (hardcoded illustrative fares):
+streamlit run app.py</pre>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     B. DATASET
+══════════════════════════════════════════════════════════════ -->
+<h2>B. Dataset — Citation and Preprocessing</h2>
+
+<h3>B.1 Citation</h3>
+<p>
+  Yasser H. (2023). <em>Uber Fares Dataset</em>. Kaggle.
+  <a href="https://www.kaggle.com/datasets/yasserh/uber-fares-dataset">
+  https://www.kaggle.com/datasets/yasserh/uber-fares-dataset</a>.
+  Accessed April 2026.
+</p>
+<p>The dataset contains <strong>200,000 Uber trip records from New York City (2009–2015)</strong>
+with the following schema:</p>
+
+<table>
+  <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+  <tr><td><code>fare_amount</code></td><td>float</td><td>Trip fare in USD</td></tr>
+  <tr><td><code>pickup_datetime</code></td><td>string</td><td>UTC timestamp of pickup</td></tr>
+  <tr><td><code>pickup_longitude</code></td><td>float</td><td>Pickup longitude (WGS84)</td></tr>
+  <tr><td><code>pickup_latitude</code></td><td>float</td><td>Pickup latitude (WGS84)</td></tr>
+  <tr><td><code>dropoff_longitude</code></td><td>float</td><td>Drop-off longitude (WGS84)</td></tr>
+  <tr><td><code>dropoff_latitude</code></td><td>float</td><td>Drop-off latitude (WGS84)</td></tr>
+  <tr><td><code>passenger_count</code></td><td>int</td><td>Number of passengers (1–6)</td></tr>
+</table>
+
+<h3>B.2 Preprocessing steps</h3>
+<p>The following cleaning steps were applied sequentially, retaining <strong>50,000 rows</strong>
+after cleaning (25% of raw data; random sample via the Kaggle download):</p>
+
+<table>
+  <tr><th>Step</th><th>Rule</th><th>Rationale</th></tr>
+  <tr><td>1. Parse datetime</td>
+      <td><code>pd.to_datetime(errors='coerce')</code>; drop NaT rows</td>
+      <td>Remove malformed timestamps</td></tr>
+  <tr><td>2. Drop null fares</td>
+      <td><code>dropna(subset=['fare_amount'])</code></td>
+      <td>Cannot impute target variable</td></tr>
+  <tr><td>3. Fare bounds</td>
+      <td>Keep $2.50 ≤ fare ≤ $150</td>
+      <td>$2.50 = NYC minimum fare; $150 caps extreme outliers (long-haul airport trips)</td></tr>
+  <tr><td>4. NYC bounding box</td>
+      <td>−74.1 ≤ lon ≤ −73.7 &nbsp;&amp;&amp;&nbsp; 40.5 ≤ lat ≤ 40.95</td>
+      <td>Removes GPS errors and non-NYC pickups</td></tr>
+</table>
+
+<p class="note">Post-cleaning summary: 50,000 rows · fare mean $10.82 · std $4.73 ·
+min $2.50 · max $40.78. Passenger count mean 1.39.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     C. FEATURE ENGINEERING
+══════════════════════════════════════════════════════════════ -->
+<h2>C. Feature Engineering</h2>
+
+<table>
+  <tr><th>Feature</th><th>Formula / Logic</th><th>Purpose</th></tr>
+  <tr><td><code>distance_km</code></td>
+      <td>Haversine distance (R = 6 371 km) between pickup and drop-off,
+          clipped to [0.1, 80] km</td>
+      <td>Primary fare driver</td></tr>
+  <tr><td><code>hour</code></td>
+      <td><code>pickup_datetime.dt.hour</code> (0–23)</td>
+      <td>Raw hour for labelling</td></tr>
+  <tr><td><code>hour_sin</code></td>
+      <td>sin(2π · hour / 24)</td>
+      <td rowspan="2">Cyclical encoding — preserves 23:00↔00:00 continuity</td></tr>
+  <tr><td><code>hour_cos</code></td>
+      <td>cos(2π · hour / 24)</td></tr>
+  <tr><td><code>day_of_week</code></td>
+      <td><code>dt.dayofweek</code> (0 = Mon … 6 = Sun)</td>
+      <td>Day label</td></tr>
+  <tr><td><code>dow_sin</code></td>
+      <td>sin(2π · day_of_week / 7)</td>
+      <td rowspan="2">Cyclical day-of-week encoding</td></tr>
+  <tr><td><code>dow_cos</code></td>
+      <td>cos(2π · day_of_week / 7)</td></tr>
+  <tr><td><code>month</code></td>
+      <td><code>dt.month</code> (1–12)</td>
+      <td>Seasonal signal</td></tr>
+  <tr><td><code>is_weekend</code></td>
+      <td>1 if day_of_week ≥ 5, else 0</td>
+      <td>Weekend demand shift</td></tr>
+  <tr><td><code>is_rush_hour</code></td>
+      <td>1 if hour ∈ {7, 8, 17, 18, 19}, else 0</td>
+      <td>Explicit surge flag; matches known NYC Uber peak windows</td></tr>
+  <tr><td><code>passenger_count</code></td>
+      <td>Raw integer (1–6)</td>
+      <td>Fare multiplier signal</td></tr>
+</table>
+
+<p>Final feature vector fed to the model:
+<code>[distance_km, hour_sin, hour_cos, dow_sin, dow_cos, month,
+passenger_count, is_weekend, is_rush_hour]</code> — 9 features total.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     D. MODEL SPECIFICATION
+══════════════════════════════════════════════════════════════ -->
+<h2>D. Predictive Model — XGBoost Specification</h2>
+
+<h3>D.1 Model choice rationale</h3>
+<p>Fare prediction is a regression task with non-linear interactions (surge × distance ×
+time-of-day). Tree-based gradient boosting consistently outperforms linear regression on
+structured tabular data with such interactions (Chen &amp; Guestrin, 2016). XGBoost was
+selected over HistGradientBoostingRegressor for its native GPU support and established
+Kaggle benchmarks on this specific dataset.</p>
+
+<h3>D.2 Hyperparameters</h3>
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Rationale</th></tr>
+  <tr><td><code>n_estimators</code></td><td>400</td>
+      <td>Sufficient for convergence on 40 k training rows; validated by eval loss plateau</td></tr>
+  <tr><td><code>learning_rate</code></td><td>0.05</td>
+      <td>Conservative shrinkage → lower variance</td></tr>
+  <tr><td><code>max_depth</code></td><td>6</td>
+      <td>Standard for tabular regression; limits overfitting</td></tr>
+  <tr><td><code>subsample</code></td><td>0.8</td>
+      <td>Row-level stochasticity → regularisation</td></tr>
+  <tr><td><code>colsample_bytree</code></td><td>0.8</td>
+      <td>Feature-level stochasticity</td></tr>
+  <tr><td><code>min_child_weight</code></td><td>5</td>
+      <td>Minimum leaf samples; prevents fine-grained noise fitting</td></tr>
+  <tr><td><code>reg_alpha</code></td><td>0.1</td><td>L1 regularisation</td></tr>
+  <tr><td><code>reg_lambda</code></td><td>1.0</td><td>L2 regularisation</td></tr>
+  <tr><td><code>random_state</code></td><td>42</td><td>Reproducibility</td></tr>
+</table>
+
+<h3>D.3 Train / test split</h3>
+<p>80% / 20% random split (<code>random_state=42</code>):
+Train = 40,000 rows · Test = 10,000 rows.</p>
+
+<h3>D.4 Hold-out performance</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th><th>Interpretation</th></tr>
+  <tr><td>MAE</td><td><strong>$2.30</strong></td>
+      <td>Average prediction error — actionable for "cheapest hour" recommendation</td></tr>
+  <tr><td>RMSE</td><td>$4.52</td><td>Penalises larger errors; reflects realistic fare variance</td></tr>
+  <tr><td>R²</td><td>0.773</td><td>77.3% of fare variance explained by 9 features</td></tr>
+</table>
+
+<h3>D.5 Feature importance (ranked)</h3>
+<p>Distance is the dominant predictor; time-of-day features (hour_sin, hour_cos,
+is_rush_hour) collectively rank 2nd–4th, validating the product premise that departure
+timing is a meaningful fare lever independent of distance.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     E. USER SEGMENTATION DGP
+══════════════════════════════════════════════════════════════ -->
+<h2>E. User Segmentation — Data-Generating Process</h2>
+
+<h3>E.1 Cohort simulation</h3>
+<p>A synthetic cohort of <strong>n = 1,000 users</strong> was simulated
+(<code>np.random.seed(7)</code>) to represent FareSaver's potential user base:</p>
+
+<table>
+  <tr><th>Variable</th><th>Distribution</th><th>Parameters</th></tr>
+  <tr><td><code>trips_pw</code> (trips/week)</td>
+      <td>Discrete uniform (weighted)</td>
+      <td>Values [2,3,4,5,6,7] with probabilities [0.10, 0.20, 0.30, 0.22, 0.12, 0.06]</td></tr>
+  <tr><td><code>pct_surge</code> (fraction of trips during rush)</td>
+      <td>Beta(2, 4)</td>
+      <td>Mean ≈ 0.33 — right-skewed toward lower surge exposure, consistent with the
+          minority of trips falling in rush windows</td></tr>
+</table>
+
+<h3>E.2 Segment assignment rules</h3>
+<table>
+  <tr><th>Segment</th><th>Rule</th><th>n (realised)</th><th>Share</th></tr>
+  <tr><td>Chronic Surge Rider</td><td><code>pct_surge > 0.55</code></td>
+      <td>119</td><td>11.9%</td></tr>
+  <tr><td>Flexible Rider</td><td><code>0.25 &lt; pct_surge ≤ 0.55</code></td>
+      <td>529</td><td>52.9%</td></tr>
+  <tr><td>Off-Peak Rider</td><td><code>pct_surge ≤ 0.25</code></td>
+      <td>352</td><td>35.2%</td></tr>
+</table>
+
+<h3>E.3 Monthly saving calculation</h3>
+<p>For each user:</p>
+<pre>monthly_saving = trips_pw × 4.33 × pct_surge × 0.60 × surge_premium</pre>
+<p>Where <em>surge_premium</em> = $19.87 − $17.50 = $2.37 (model-predicted, distance-controlled,
+7 km representative trip); 0.60 = assumed fraction of surge trips avoidable with FareSaver.</p>
+
+<table>
+  <tr><th>Segment</th><th>Avg trips/week</th><th>Avg surge %</th>
+      <th>Avg monthly saving</th></tr>
+  <tr><td>Chronic Surge Rider</td><td>4.13</td><td>66%</td><td>$16.78</td></tr>
+  <tr><td>Flexible Rider</td><td>4.29</td><td>38%</td><td>$10.14</td></tr>
+  <tr><td>Off-Peak Rider</td><td>4.14</td><td>15%</td><td>$3.96</td></tr>
+</table>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     F. CLV MODEL
+══════════════════════════════════════════════════════════════ -->
+<h2>F. CLV &amp; Unit Economics — Parameter Documentation</h2>
+
+<table>
+  <tr><th>Parameter</th><th>Value</th><th>Source / Rationale</th></tr>
+  <tr><td>Premium price</td><td>$1.50 / month</td>
+      <td>Revenue-maximising price from WTP demand-curve analysis (Section G / notebook Section 8)</td></tr>
+  <tr><td>Monthly churn rate</td><td>4%</td>
+      <td>Implies avg tenure ≈ 25 months; consistent with mobile utility apps
+          (Adjust, 2023 Mobile App Trends)</td></tr>
+  <tr><td>Gross margin</td><td>75%</td>
+      <td>Conservative estimate for a software-only product
+          (hosting, push notification, API costs)</td></tr>
+  <tr><td>Monthly discount rate</td><td>1%</td>
+      <td>≈ 12.7% annually; reflects early-stage startup cost of capital</td></tr>
+  <tr><td>Free → Premium conversion rate</td><td>8%</td>
+      <td>Conservative vs Spotify (≈27%) and Duolingo (≈8%); applied to MAU
+          after 30-day trial exposure</td></tr>
+  <tr><td>Forecast horizon</td><td>36 months</td>
+      <td>Standard SaaS CLV horizon</td></tr>
+  <tr><td>CLV:CAC benchmark</td><td>3:1</td>
+      <td>Skok (2010) SaaS heuristic</td></tr>
+</table>
+
+<h3>F.1 CLV formula</h3>
+<pre>CLV = Σ_{t=1}^{36} [ P × M × (1 − c)^t / (1 + d)^t ]
+
+where:
+  P = $1.50   (monthly price — opt_price from Section 8 demand-curve analysis)
+  M = 0.75    (gross margin)
+  c = 0.04    (monthly churn)
+  d = 0.01    (monthly discount rate)</pre>
+
+<h3>F.2 Key outputs</h3>
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  <tr><td>Premium CLV (36-month)</td><td>$18.12</td></tr>
+  <tr><td>Blended CLV per acquired user (8% conv)</td><td>$1.45</td></tr>
+  <tr><td>CAC ceiling (CLV / 3)</td><td>$0.48</td></tr>
+  <tr><td>Avg premium tenure (1 / churn)</td><td>25 months</td></tr>
+</table>
+
+<p class="note">Limitation: CLV uses assumed churn and conversion rates, not observed data.
+Sensitivity analysis (Section H) shows CLV ranges from $11 to $36+ as churn varies from
+12% to 2%.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     G. WTP SIMULATION DGP
+══════════════════════════════════════════════════════════════ -->
+<h2>G. Willingness-to-Pay Simulation — DGP and Parameter Choices</h2>
+
+<h3>G.1 Motivation</h3>
+<p>A revealed-preference or conjoint study was not feasible within this project's scope.
+Instead, WTP was simulated from a log-normal distribution calibrated to each segment's
+average monthly saving, using a value-sharing ratio of 20–25%.
+This ratio is consistent with Citymapper Club ($2.99/month targeting commuters who
+save ~$10–15/month in transit time) and GasBuddy Plus ($7.99/month targeting drivers
+who save $30–50/month on fuel).</p>
+
+<h3>G.2 Log-normal parameterisation</h3>
+<p>WTP ~ LogNormal(μ_ln, σ_ln) where μ_ln and σ_ln are derived from target mean and
+standard deviation:</p>
+<pre>μ_ln    = log( μ² / sqrt(σ² + μ²) )
+σ_ln    = sqrt( log( 1 + σ²/μ² ) )</pre>
+
+<table>
+  <tr><th>Segment</th><th>Share (Section 6)</th><th>Mean WTP (μ)</th><th>Std WTP (σ)</th>
+      <th>Rationale</th></tr>
+  <tr><td>Chronic Surge Rider</td><td>11.9%</td><td>$3.69</td><td>$1.48</td>
+      <td>22% of $16.78 avg saving (Section 6); highly motivated, less price-sensitive</td></tr>
+  <tr><td>Flexible Rider</td><td>52.9%</td><td>$2.23</td><td>$1.08</td>
+      <td>22% of $10.14 avg saving (Section 6); core target segment</td></tr>
+  <tr><td>Off-Peak Rider</td><td>35.2%</td><td>$0.87</td><td>$0.52</td>
+      <td>22% of $3.96 avg saving (Section 6); price-sensitive, casual users</td></tr>
+</table>
+
+<p class="note">Segment shares and mean WTP values are derived directly from the Section 6
+model output (n = 1,000 simulated users; <code>np.random.seed(7)</code>). Mean WTP = 22% of
+avg monthly saving (midpoint of 20–25% value-share ratio). Std WTP scales proportionally
+to preserve the original log-normal spread ratio per segment.</p>
+
+<h3>G.3 Simulation output</h3>
+<table>
+  <tr><th>Statistic</th><th>Value</th></tr>
+  <tr><td>N simulated users</td><td>10,000 (<code>np.random.seed(42)</code>)</td></tr>
+  <tr><td>Overall mean WTP</td><td>$1.92</td></tr>
+  <tr><td>Overall median WTP</td><td>$1.63</td></tr>
+</table>
+
+<h3>G.4 Revenue-maximising price derivation</h3>
+<p>For each candidate price p ∈ [0.50, 9.00] (step 0.10), revenue per acquired user is:</p>
+<pre>Revenue(p) = p × P(WTP ≥ p)</pre>
+
+<table>
+  <tr><th>Price</th><th>Conversion rate</th><th>Revenue / user</th><th>Note</th></tr>
+  <tr><td>$1.50</td><td>54.6%</td><td>$0.819</td>
+      <td><strong>Revenue-maximising ← chosen price</strong></td></tr>
+  <tr><td>$1.63 (median WTP)</td><td>50.1%</td><td>$0.816</td><td></td></tr>
+  <tr><td>$1.92 (mean WTP)</td><td>40.9%</td><td>$0.786</td><td></td></tr>
+  <tr><td>$2.99 (market benchmark)</td><td>17.9%</td><td>$0.534</td><td></td></tr>
+</table>
+
+<p><strong>Why mean WTP ≠ optimal price:</strong>
+Setting price = mean WTP ($1.92) converts only ~41% of users because the distribution is
+right-skewed (median $1.63 &lt; mean $1.92 → P(WTP ≥ mean) &lt; 50%).
+The revenue function R(p) = p × P(WTP ≥ p) peaks at $1.50, where the gain from higher
+price is exactly offset by the loss in conversion rate. This is the standard monopoly
+pricing result on a log-normal demand curve.</p>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     H. SUPPLEMENTARY TABLES
+══════════════════════════════════════════════════════════════ -->
+<h2>H. Supplementary Output Tables</h2>
+
+<h3>H.1 Full hourly fare forecast (Columbia → Midtown, 7 km, Tuesday, March)</h3>
+<p class="note">Generated by the XGBoost model in notebook Section 5. Illustrates the
+departure-hour sensitivity that FareSaver surfaces to users.</p>
+
+<table>
+  <tr><th>Hour</th><th>Predicted fare</th><th>Tag</th>
+      <th>Hour</th><th>Predicted fare</th><th>Tag</th></tr>
+  <tr><td>00:00</td><td>$17.79</td><td></td>
+      <td>12:00</td><td>$20.89</td><td></td></tr>
+  <tr><td>01:00</td><td>$17.50</td><td>◀ Cheapest</td>
+      <td>13:00</td><td>$21.48</td><td></td></tr>
+  <tr><td>02:00</td><td>$17.58</td><td></td>
+      <td>14:00</td><td>$21.37</td><td></td></tr>
+  <tr><td>03:00</td><td>$17.83</td><td></td>
+      <td>15:00</td><td>$21.20</td><td></td></tr>
+  <tr><td>04:00</td><td>$18.49</td><td></td>
+      <td>16:00</td><td>$21.02</td><td></td></tr>
+  <tr><td>05:00</td><td>$18.76</td><td></td>
+      <td>17:00</td><td>$20.29</td><td>▲ Surge</td></tr>
+  <tr><td>06:00</td><td>$17.93</td><td></td>
+      <td>18:00</td><td>$19.70</td><td>▲ Surge</td></tr>
+  <tr><td>07:00</td><td>$19.35</td><td>▲ Surge</td>
+      <td>19:00</td><td>$19.18</td><td></td></tr>
+  <tr><td>08:00</td><td>$20.85</td><td>▲ Surge</td>
+      <td>20:00</td><td>$18.56</td><td></td></tr>
+  <tr><td>09:00</td><td>$21.22</td><td></td>
+      <td>21:00</td><td>$18.37</td><td></td></tr>
+  <tr><td>10:00</td><td>$21.25</td><td></td>
+      <td>22:00</td><td>$18.46</td><td></td></tr>
+  <tr><td>11:00</td><td>$21.50</td><td>▲ Peak</td>
+      <td>23:00</td><td>$18.32</td><td></td></tr>
+</table>
+<p class="note">Max saving: $21.50 (11:00) − $17.50 (01:00) = <strong>$4.00</strong> for this specific 7 km trip.</p>
+
+<h3>H.2 CLV sensitivity to monthly churn rate</h3>
+<table>
+  <tr><th>Monthly churn</th><th>Avg tenure (mo)</th><th>Premium CLV</th>
+      <th>Blended CLV (8% conv)</th><th>CAC ceiling</th></tr>
+  <tr><td>2%</td><td>50</td><td>$35.7</td><td>$2.86</td><td>$0.95</td></tr>
+  <tr><td>4% (base)</td><td>25</td><td>$26.6</td><td>$2.13</td><td>$0.71</td></tr>
+  <tr><td>6%</td><td>17</td><td>$20.5</td><td>$1.64</td><td>$0.55</td></tr>
+  <tr><td>8%</td><td>13</td><td>$16.3</td><td>$1.30</td><td>$0.43</td></tr>
+  <tr><td>12%</td><td>8</td><td>$11.1</td><td>$0.89</td><td>$0.30</td></tr>
+</table>
+
+<h3>H.3 EDA summary — avg fare by period</h3>
+<table>
+  <tr><th>Period</th><th>Hours</th><th>Avg fare (dataset)</th><th>vs cheapest</th></tr>
+  <tr><td>Rush hour</td><td>7, 8, 17, 18, 19</td><td>$14.01</td><td>+54%</td></tr>
+  <tr><td>Off-peak (all)</td><td>remaining hours</td><td>$9.98</td><td>+10%</td></tr>
+  <tr><td>Cheapest window</td><td>3, 4, 5</td><td>$9.11</td><td>—</td></tr>
+  <tr><td>Dataset overall mean</td><td>all hours</td><td>$10.82</td><td>+19%</td></tr>
+</table>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     I. SOURCE CODE
+══════════════════════════════════════════════════════════════ -->
+<h2>I. Annotated Source Code</h2>
+<p>The full notebook is submitted alongside this appendix as
+<code>FareSaver_Analytics_1.ipynb</code>. Key sections are reproduced below.</p>
+
+<h3>I.1 Data cleaning</h3>
+<pre>df = df_raw.copy()
+df['pickup_datetime'] = pd.to_datetime(df['pickup_datetime'], errors='coerce')
+df = df.dropna(subset=['pickup_datetime', 'fare_amount'])
+df = df[(df['fare_amount'] >= 2.50) & (df['fare_amount'] <= 150)]
+bbox = dict(lon_min=-74.1, lon_max=-73.7, lat_min=40.5, lat_max=40.95)
+df = df[
+    df['pickup_longitude'].between(bbox['lon_min'], bbox['lon_max']) &
+    df['pickup_latitude'].between(bbox['lat_min'],  bbox['lat_max'])
+]
+# Result: 50,000 rows | fare range $2.50 – $40.78</pre>
+
+<h3>I.2 Feature engineering</h3>
+<pre>def haversine_km(lon1, lat1, lon2, lat2):
+    R = 6371
+    phi1, phi2 = np.radians(lat1), np.radians(lat2)
+    dphi    = np.radians(lat2 - lat1)
+    dlambda = np.radians(lon2 - lon1)
+    a = np.sin(dphi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2)**2
+    return 2 * R * np.arcsin(np.sqrt(a))
+
+df['distance_km']  = haversine_km(...).clip(0.1, 80)
+df['hour']         = df['pickup_datetime'].dt.hour
+df['day_of_week']  = df['pickup_datetime'].dt.dayofweek
+df['month']        = df['pickup_datetime'].dt.month
+df['is_weekend']   = (df['day_of_week'] >= 5).astype(int)
+df['is_rush_hour'] = df['hour'].isin([7, 8, 17, 18, 19]).astype(int)
+df['hour_sin']     = np.sin(2 * np.pi * df['hour'] / 24)
+df['hour_cos']     = np.cos(2 * np.pi * df['hour'] / 24)
+df['dow_sin']      = np.sin(2 * np.pi * df['day_of_week'] / 7)
+df['dow_cos']      = np.cos(2 * np.pi * df['day_of_week'] / 7)</pre>
+
+<h3>I.3 XGBoost model training</h3>
+<pre>FEATURES = ['distance_km','hour_sin','hour_cos','dow_sin','dow_cos',
+            'month','passenger_count','is_weekend','is_rush_hour']
+
+X_train, X_test, y_train, y_test = train_test_split(
+    df[FEATURES], df['fare_amount'], test_size=0.2, random_state=42)
+
+model = xgb.XGBRegressor(
+    n_estimators=400, learning_rate=0.05, max_depth=6,
+    subsample=0.8, colsample_bytree=0.8, min_child_weight=5,
+    reg_alpha=0.1, reg_lambda=1.0, random_state=42, n_jobs=-1, verbosity=0)
+
+model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False)
+# MAE: $0.97 | RMSE: $1.21 | R²: 0.935</pre>
+
+<h3>I.4 Fare forecast by hour (Section 5)</h3>
+<pre>TRIP_DISTANCE_KM = 7.0        # Columbia → Midtown example
+DAY_OF_WEEK      = 1          # Tuesday
+MONTH            = 3          # March
+
+forecast_rows = []
+for h in range(24):
+    forecast_rows.append({
+        'distance_km':     TRIP_DISTANCE_KM,
+        'hour_sin':        np.sin(2*np.pi*h/24),
+        'hour_cos':        np.cos(2*np.pi*h/24),
+        'dow_sin':         np.sin(2*np.pi*DAY_OF_WEEK/7),
+        'dow_cos':         np.cos(2*np.pi*DAY_OF_WEEK/7),
+        'month':           MONTH,
+        'passenger_count': 1,
+        'is_weekend':      0,
+        'is_rush_hour':    int(h in [7,8,17,18,19]),
+    })
+predicted_fares = model.predict(pd.DataFrame(forecast_rows)[FEATURES])</pre>
+
+<h3>I.5 User segmentation (Section 6)</h3>
+<pre>np.random.seed(7)
+n_users  = 1_000
+trips_pw = np.random.choice([2,3,4,5,6,7], n_users,
+                             p=[0.10,0.20,0.30,0.22,0.12,0.06])
+pct_surge = np.random.beta(2, 4, n_users)  # skewed toward low surge
+
+def segment(row):
+    if row['pct_surge'] > 0.55:  return 'Chronic Surge Rider'
+    elif row['pct_surge'] > 0.25: return 'Flexible Rider'
+    else:                         return 'Off-Peak Rider'
+
+users = pd.DataFrame({'trips_pw': trips_pw, 'pct_surge': pct_surge})
+users['segment'] = users.apply(segment, axis=1)
+users['monthly_saving'] = (users['trips_pw'] * 4.33 *
+                            users['pct_surge'] * 0.60 * surge_premium)</pre>
+
+<h3>I.6 CLV model (Section 7)</h3>
+<pre>PRICE_MONTHLY    = 2.20   # revenue-maximising price (Section 8)
+CHURN_MONTHLY    = 0.04
+MARGIN           = 0.75
+DISCOUNT_MONTHLY = 0.01
+CONV_RATE        = 0.08
+HORIZON_MONTHS   = 36
+
+clv = sum(
+    PRICE_MONTHLY * MARGIN * ((1-CHURN_MONTHLY)**t) / ((1+DISCOUNT_MONTHLY)**t)
+    for t in range(1, HORIZON_MONTHS + 1)
+)
+blended_clv = clv * CONV_RATE  # $2.13
+cac_target  = blended_clv / 3  # $0.71</pre>
+
+<h3>I.7 WTP simulation and price optimisation (Section 8)</h3>
+<pre>np.random.seed(42)
+N_SIM = 10_000
+# Shares = actual Section 6 segment counts (119/529/352 out of 1,000)
+SEG_SHARES = {'Chronic Surge Rider': 0.119,
+              'Flexible Rider':      0.529,
+              'Off-Peak Rider':      0.352}
+# Mean WTP = 22% of Section 6 avg monthly saving; std scaled proportionally
+WTP_PARAMS = {'Chronic Surge Rider': (3.69, 1.48),
+              'Flexible Rider':      (2.23, 1.08),
+              'Off-Peak Rider':      (0.87, 0.52)}
+
+WTP_MEAN_RATIO = 0.22
+seg_counts = users['segment'].value_counts()
+SEG_SHARES = (seg_counts / seg_counts.sum()).to_dict()   # from Section 6
+
+WTP_STD_RATIO = {'Chronic Surge Rider': 0.40, 'Flexible Rider': 0.48, 'Off-Peak Rider': 0.60}
+WTP_PARAMS = {
+    seg: (seg_summary.loc[seg,'avg_monthly_saving'] * WTP_MEAN_RATIO,
+          seg_summary.loc[seg,'avg_monthly_saving'] * WTP_MEAN_RATIO * WTP_STD_RATIO[seg])
+    for seg in SEG_SHARES
+}  # fully derived from Section 6 output — no hardcoded dollar amounts
+
+wtp_all = []
+for seg, share in SEG_SHARES.items():
+    n = int(N_SIM * share)
+    mu, sigma = WTP_PARAMS[seg]
+    ln_mu    = np.log(mu**2 / np.sqrt(sigma**2 + mu**2))
+    ln_sigma = np.sqrt(np.log(1 + sigma**2 / mu**2))
+    wtp_all.extend(np.random.lognormal(ln_mu, ln_sigma, n))
+
+wtp_array = np.array(wtp_all)
+# Overall mean WTP: $1.92  |  Median: $1.63
+
+# Revenue-maximising price
+prices           = np.arange(0.50, 9.01, 0.10)
+conversion_rates = np.array([np.mean(wtp_array >= p) for p in prices])
+monthly_revenue  = prices * conversion_rates
+opt_price = prices[np.argmax(monthly_revenue)]  # $1.50
+opt_conv  = conversion_rates[np.argmax(monthly_revenue)]  # 54.6%
+opt_rev   = monthly_revenue.max()               # $0.819 per acquired user</pre>
+
+<h3>I.8 Analytics → marketing decision bridge (Section 9)</h3>
+<pre>print(f'Surge fares: ${surge_avg:.2f}  vs  Off-peak: ${offpeak_avg:.2f} (+40%)')
+# DECISION: Run TikTok/Instagram ads at 6–9am and 4–7pm — users feel surge in real time
+
+print(f'Cheapest window (3–5am): ${cheapest:.2f} | Saving vs peak: ${surge_avg-cheapest:.2f}')
+# DECISION: Core messaging = "Beat the Surge" — quantified, believable saving
+
+print(f'Flexible Riders: avg saving ${10.14:.2f}/mo — primary conversion target')
+# DECISION: Free tier onboarding targets Flexible Rider persona
+#           Premium upsell: "See 7-day forecast to plan ahead"
+
+print(f'Blended CLV ${blended_clv:.2f} → CAC ceiling ${cac_target:.2f}')
+# DECISION: Allocate ≤$0.71 CAC on paid channels
+#           TikTok app-install CPI ~$0.50–$1.50 → tight ROI; favour organic/viral growth
+#           → TikTok content, Reddit communities</pre>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FIGURES
+══════════════════════════════════════════════════════════════ -->
+<h2>J. Supplementary Figures</h2>
+
+<figure>
+  <img src="eda_fare_patterns.png" alt="EDA — Fare Patterns">
+  <figcaption>Figure J.1 — EDA: Avg fare by hour of day (left); avg fare by day of week (centre);
+  fare vs. distance scatter coloured by rush-hour flag (right).
+  Orange = surge hours; green = cheapest window (3–5am); teal = normal.</figcaption>
+</figure>
+
+<figure>
+  <img src="feature_importance.png" alt="XGBoost Feature Importance">
+  <figcaption>Figure J.2 — XGBoost feature importance scores. Distance is the dominant predictor;
+  time-of-day features (hour_sin, hour_cos, is_rush_hour) rank 2nd–4th.</figcaption>
+</figure>
+
+<figure>
+  <img src="fare_forecast_by_hour.png" alt="Fare Forecast by Hour">
+  <figcaption>Figure J.3 — Model-predicted fare by departure hour for a representative 7 km trip
+  (Columbia → Midtown, Tuesday, March). Red dashed line = current surge fare.
+  Green shading = cheapest departure window.</figcaption>
+</figure>
+
+<figure>
+  <img src="user_segments.png" alt="User Segmentation">
+  <figcaption>Figure J.4 — Left: segment distribution across 1,000 simulated users.
+  Right: average monthly saving by segment. Flexible Rider is the primary acquisition target.</figcaption>
+</figure>
+
+<figure>
+  <img src="unit_economics.png" alt="Unit Economics">
+  <figcaption>Figure J.5 — Left: CLV sensitivity to monthly churn rate (base case 4% highlighted).
+  Right: cohort funnel from acquisition to retained premium subscribers at 12 months.</figcaption>
+</figure>
+
+<figure>
+  <img src="pricing_analytics.png" alt="Pricing Analytics">
+  <figcaption>Figure J.6 — WTP simulation results. Left: WTP distribution by segment with optimal
+  price $2.20 marked. Centre: demand curve (conversion rate vs price). Right: revenue curve
+  with revenue-maximising price $2.20 highlighted.</figcaption>
+</figure>
+
+
+<!-- ══════════════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════════════ -->
+<hr class="rule">
+<p class="note centre">FareSaver Technical Appendix &nbsp;·&nbsp;
+RSM 8542 Analytics for Marketing Strategy &nbsp;·&nbsp; Spring 2026 &nbsp;·&nbsp;
+Xuezhu Liu</p>
+
+</body>
+</html>

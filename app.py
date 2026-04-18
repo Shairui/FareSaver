@@ -784,16 +784,19 @@ div[data-testid="stButton"] > button:not([kind="primary"]) {
 )
 
 
+# Fare predictions from XGBoost model (notebook Section 5):
+# 7 km trip, Columbia → Midtown, Tuesday, March — all 24 departure hours
 HOURS = list(range(24))
 FARES = [
-    10.2, 9.8, 9.5, 9.3, 9.1, 9.8, 11.2, 13.8, 14.2, 13.5, 11.8, 11.2,
-    11.5, 11.3, 11.0, 11.8, 13.2, 14.0, 13.8, 12.5, 12.0, 11.5, 11.0, 10.6,
+    17.79, 17.50, 17.58, 17.83, 18.49, 18.76, 17.93, 19.35, 20.85, 21.22, 21.25, 21.50,
+    20.89, 21.48, 21.37, 21.20, 21.02, 20.29, 19.70, 19.18, 18.56, 18.37, 18.46, 18.32,
 ]
 
-SURGE_AVG = 14.01
-CHEAPEST = 9.11
-SAVING = 4.91
-MONTHLY_SAVING = 21.00
+SURGE_AVG      = 19.87   # model-predicted rush-hour avg, 7 km trip (notebook Section 6)
+CHEAPEST       = 17.50   # model-predicted cheapest hour 01:00 (notebook Section 5)
+SAVING         = 4.00    # max saving: worst (11:00 $21.50) − cheapest (01:00 $17.50) ≈ $3.99
+MONTHLY_SAVING = 10.14   # Flexible Rider avg monthly saving (notebook Section 6)
+OPT_PRICE      = 1.50    # revenue-maximising price (notebook Section 8, opt_price)
 
 
 def hour_label(h):
@@ -807,9 +810,9 @@ def hour_label(h):
 
 
 def fare_color(f):
-    if f >= 13:
+    if f >= 20.50:
         return "#e04b43"
-    if f >= 10:
+    if f >= 18.50:
         return "#f59e0b"
     return "#18c45c"
 
@@ -838,13 +841,13 @@ with tab_home:
           <div class="hero-stack">
             <div class="hero-float">
               <div class="hero-float-label">Rush-hour difference</div>
-              <div class="hero-float-value">+40%</div>
-              <div class="hero-float-copy">Average fares spike hard during commute windows. The cheap hours are repeatable.</div>
+              <div class="hero-float-value">+14%</div>
+              <div class="hero-float-copy">Model-predicted fares spike during commute windows. The cheap hours are repeatable.</div>
             </div>
             <div class="hero-float">
-              <div class="hero-float-label">Average saving</div>
-              <div class="hero-float-value">$4.91</div>
-              <div class="hero-float-copy">One smart trip can already cover the feeling that you finally beat surge.</div>
+              <div class="hero-float-label">Max saving per trip</div>
+              <div class="hero-float-value">$4.00</div>
+              <div class="hero-float-copy">One smart departure choice on a 7 km trip already beats the surge premium.</div>
             </div>
           </div>
         </div>
@@ -876,7 +879,7 @@ with tab_plan:
     if "alert_shown" not in st.session_state:
         st.session_state.alert_shown = False
     if "alert_threshold" not in st.session_state:
-        st.session_state.alert_threshold = 10.0
+        st.session_state.alert_threshold = 18.5
 
     st.markdown("<div class='section-kicker'>Forecast</div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Plan My Trip</div>", unsafe_allow_html=True)
@@ -911,15 +914,15 @@ with tab_plan:
             '<div style="display:flex;gap:0;align-items:stretch;flex-wrap:wrap;">'
             '<div style="flex:1;min-width:180px;padding-right:22px;border-right:1px solid rgba(255,255,255,0.08);margin-bottom:10px;">'
             '<div style="font-size:12px;color:rgba(255,255,255,0.58);margin-bottom:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Cheapest departure</div>'
-            '<div style="font-size:2rem;font-weight:900;color:#fff;letter-spacing:-0.04em;line-height:1;">3 am - 5 am</div>'
+            '<div style="font-size:2rem;font-weight:900;color:#fff;letter-spacing:-0.04em;line-height:1;">1 am</div>'
             "</div>"
             '<div style="flex:1;min-width:160px;padding:0 22px;border-right:1px solid rgba(255,255,255,0.08);margin-bottom:10px;">'
             '<div style="font-size:12px;color:rgba(255,255,255,0.58);margin-bottom:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">Estimated fare</div>'
-            f'<div style="font-size:2rem;font-weight:900;color:#8ef0b7;letter-spacing:-0.04em;line-height:1;">${CHEAPEST}</div>'
+            f'<div style="font-size:2rem;font-weight:900;color:#8ef0b7;letter-spacing:-0.04em;line-height:1;">${CHEAPEST:.2f}</div>'
             "</div>"
             '<div style="flex:1;min-width:160px;padding-left:22px;margin-bottom:10px;">'
             '<div style="font-size:12px;color:rgba(255,255,255,0.58);margin-bottom:8px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;">You save vs now</div>'
-            f'<div style="font-size:2rem;font-weight:900;color:#8ef0b7;letter-spacing:-0.04em;line-height:1;">-${SAVING}</div>'
+            f'<div style="font-size:2rem;font-weight:900;color:#8ef0b7;letter-spacing:-0.04em;line-height:1;">Save ${SAVING:.2f}</div>'
             "</div>"
             "</div>"
             "</div>"
@@ -952,7 +955,7 @@ with tab_plan:
             ),
             yaxis=dict(
                 title=dict(text="Estimated fare ($)", font=dict(color="#f5f1e8", size=13)),
-                range=[0, 16],
+                range=[0, 25],
                 tickfont=dict(size=12, color="#f5f1e8"),
                 gridcolor="#262626",
                 zeroline=False,
@@ -969,14 +972,14 @@ with tab_plan:
             line_dash="dot",
             line_color="#e04b43",
             line_width=1.5,
-            annotation_text=f"Current fare ${SURGE_AVG}",
+            annotation_text=f"Current fare ${SURGE_AVG:.2f}",
             annotation_position="top right",
             annotation_font_color="#e04b43",
             annotation_font_size=13,
         )
         fig.add_vrect(
-            x0="3 am",
-            x1="5 am",
+            x0="12 am",
+            x1="2 am",
             fillcolor="#18c45c",
             opacity=0.10,
             line_width=0,
@@ -990,15 +993,15 @@ with tab_plan:
 
         lc1, lc2, lc3 = st.columns(3)
         lc1.markdown(
-            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Surge</b> · above $13</span>",
+            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Surge</b> · above $20.50</span>",
             unsafe_allow_html=True,
         )
         lc2.markdown(
-            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Moderate</b> · $10-$13</span>",
+            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Moderate</b> · $18.50–$20.50</span>",
             unsafe_allow_html=True,
         )
         lc3.markdown(
-            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Cheap</b> · under $10</span>",
+            "<span style='font-size:14px;color:#f5f1e8;'><b style='color:#f5f1e8;'>Cheap</b> · under $18.50</span>",
             unsafe_allow_html=True,
         )
 
@@ -1011,17 +1014,17 @@ with tab_plan:
         <div class="savings-grid">
           <div class="savings-card">
             <div class="savings-kicker">Fare right now</div>
-            <div class="savings-value">${SURGE_AVG}</div>
+            <div class="savings-value">${SURGE_AVG:.2f}</div>
             <div class="savings-copy">This is the surge price if you book immediately.</div>
           </div>
           <div class="savings-card featured">
             <div class="savings-kicker" style="color:#8ef0b7;">Cheapest window</div>
-            <div class="savings-value accent">${CHEAPEST}</div>
-            <div class="savings-copy">Save ${SAVING} compared with booking now.</div>
+            <div class="savings-value accent">${CHEAPEST:.2f}</div>
+            <div class="savings-copy">Save ${SAVING:.2f} compared with booking now.</div>
           </div>
           <div class="savings-card">
             <div class="savings-kicker">If you do this daily</div>
-            <div class="savings-value">${MONTHLY_SAVING}<span class="savings-unit">/mo</span></div>
+            <div class="savings-value">${MONTHLY_SAVING:.2f}<span class="savings-unit">/mo</span></div>
             <div class="savings-copy">Small timing changes become meaningful monthly savings.</div>
           </div>
         </div>
@@ -1036,10 +1039,10 @@ with tab_plan:
         nc1, nc2 = st.columns([3, 1])
         threshold = nc1.slider(
             "Alert me when the estimated fare drops below:",
-            9.0,
-            13.0,
+            17.0,
+            21.0,
             st.session_state.alert_threshold,
-            0.5,
+            0.25,
             format="$%.2f",
         )
         if nc2.button("Set Alert", use_container_width=True):
@@ -1093,13 +1096,13 @@ with tab_premium:
     st.markdown("<div class='section-kicker'>Premium</div>", unsafe_allow_html=True)
     st.markdown("<div class='section-title'>Forecast further. Act faster.</div>", unsafe_allow_html=True)
     st.markdown(
-        """
+        f"""
     <div class="cta-band" style="margin-top:10px;">
       <div>
         <div class="cta-title">Save on one trip.<br>See seven days ahead.</div>
         <div class="cta-copy">Most Premium users recover the monthly fee the first time they avoid a real surge. Alerts make the product feel automatic instead of manual.</div>
       </div>
-      <div class="cta-chip">$2.20 / month</div>
+      <div class="cta-chip">${OPT_PRICE:.2f} / month</div>
     </div>
     """,
         unsafe_allow_html=True,
@@ -1126,10 +1129,10 @@ with tab_premium:
 
     with col_prem:
         st.markdown(
-            """
+            f"""
         <div class="plan-prem">
           <div class="plan-name">Premium</div>
-          <div class="plan-price">$2.20 <span>/ month</span></div>
+          <div class="plan-price">${OPT_PRICE:.2f} <span>/ month</span></div>
           <ul class="plan-list">
             <li>6-hour fare forecast</li>
             <li>Cheapest window highlight</li>
@@ -1157,19 +1160,19 @@ with tab_premium:
     <div class="a-card">
       <div>
         <div class="a-title">Surge alert</div>
-        <div class="a-body">Fares near you are 40% above average. Cheapest window: after 7 pm. Waiting could save $4.90.</div>
+        <div class="a-body">Fares near you are 14% above average. Cheapest window: after midnight. Waiting could save $4.00.</div>
       </div>
     </div>
     <div class="a-card">
       <div>
         <div class="a-title">Your window is now</div>
-        <div class="a-body">Fares just dropped to $9. Book in the next 30 minutes to lock in the saving.</div>
+        <div class="a-body">Fares just dropped to $17.50. Book in the next 30 minutes to lock in the saving.</div>
       </div>
     </div>
     <div class="a-card">
       <div>
         <div class="a-title">Weekly recap</div>
-        <div class="a-body">You saved $18 this week using FareSaver. Keep the habit and the savings compound.</div>
+        <div class="a-body">You saved $16 this week using FareSaver. Keep the habit and the savings compound.</div>
       </div>
     </div>
     """,
@@ -1179,7 +1182,7 @@ with tab_premium:
     st.markdown("<div class='sep'></div>", unsafe_allow_html=True)
     st.markdown("<div class='section-kicker'>Social proof</div>", unsafe_allow_html=True)
     st.markdown(
-        """
+        f"""
     <div class="testi-grid">
       <div class="testi">
         <div class="testi-q">"</div>
@@ -1195,7 +1198,7 @@ with tab_premium:
       </div>
       <div class="testi">
         <div class="testi-q">"</div>
-        <div class="testi-copy">$2.20 pays for itself on the first ride. It feels obvious once you try it.</div>
+        <div class="testi-copy">${OPT_PRICE:.2f} pays for itself on the first ride. It feels obvious once you try it.</div>
         <div class="testi-name">Jamie T.</div>
         <div class="testi-role">Frequent traveller</div>
       </div>
